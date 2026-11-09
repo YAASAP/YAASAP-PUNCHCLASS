@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>PunchClass</title>
+<style>
+:root{--bg:#1b1340;--bg2:#2a1c5e;--card:#352577;--yel:#ffd23f;--pink:#ff5d8f;--cy:#3ec9ff;--ok:#4ade80;--tx:#fff;--mut:#b9aee6}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow:hidden}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.screen{display:none;flex:1;min-height:0;flex-direction:column;padding:14px 16px;overflow-y:auto}
+.screen.on{display:flex}
+h1{font-size:40px;margin:0;line-height:1;letter-spacing:-1px;color:var(--yel);text-shadow:3px 3px 0 var(--pink)}
+h2{margin:0 0 8px;font-size:22px}
+p{margin:6px 0;color:var(--mut);line-height:1.35}
+.btn{border:0;border-radius:16px;padding:14px 18px;font-size:18px;font-weight:800;color:#201046;background:var(--yel);box-shadow:0 5px 0 #b88f00;cursor:pointer}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #b88f00}
+.btn.alt{background:var(--cy);box-shadow:0 5px 0 #1b86ad}
+.btn.pk{background:var(--pink);color:#fff;box-shadow:0 5px 0 #b02a58}
+.btn.ghost{background:transparent;color:var(--mut);box-shadow:none;border:2px solid #4b3a96}
+.row{display:flex;gap:10px}
+.center{align-items:center;justify-content:center;text-align:center}
+.grow{flex:1}
+.hero{font-size:84px;margin:8px 0}
+/* levels */
+.lv{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:16px;padding:12px;margin:8px 0;border:2px solid transparent}
+.lv .ic{font-size:34px;width:48px;text-align:center}
+.lv .nm{font-weight:800}
+.lv .sub{font-size:13px;color:var(--mut)}
+.lv.lock{opacity:.45}
+.stars{letter-spacing:2px;font-size:18px}
+/* game */
+#hud{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;font-weight:800;font-size:15px}
+#cv{width:100%;height:auto;display:block;background:#87d4ff;border-top:3px solid #000;border-bottom:3px solid #000;image-rendering:auto}
+#msg{min-height:22px;text-align:center;font-size:14px;color:var(--yel);padding:4px 10px;font-weight:700}
+#pad{display:flex;justify-content:space-between;align-items:center;padding:6px 18px 10px;gap:12px}
+.pb{width:84px;height:84px;border-radius:50%;border:0;background:var(--card);color:#fff;font-size:34px;font-weight:900;box-shadow:0 6px 0 #1a1040}
+.pb:active,.pb.dn{background:var(--cy);transform:translateY(3px)}
+.pb.jump{width:116px;background:var(--pink);font-size:24px}
+.pb.jump.dn{background:#ff86ab}
+/* duel */
+#boss{font-size:76px;text-align:center;margin:0;line-height:1.1}
+.hp{height:16px;background:#0e0828;border-radius:10px;overflow:hidden;border:2px solid #4b3a96}
+.hp i{display:block;height:100%;background:linear-gradient(90deg,var(--pink),var(--yel));transition:width .5s}
+.bubble{background:#fff;color:#201046;border-radius:18px;padding:12px 14px;font-weight:700;position:relative;margin:10px 0}
+.bubble.me{background:var(--cy)}
+.cards{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+.pcard{background:var(--card);border:2px solid #5a46b0;border-radius:14px;padding:11px 12px;font-size:15px;font-weight:600;text-align:left;color:#fff;line-height:1.3}
+.pcard:active{background:#47339a}
+textarea{width:100%;min-height:74px;border-radius:14px;border:2px solid #5a46b0;background:#0f0a2a;color:#fff;font-size:16px;padding:10px;resize:none;font-family:inherit;-webkit-user-select:text;user-select:text}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.chip{background:#4b3a96;border-radius:999px;padding:6px 11px;font-size:14px;font-weight:700;border:0;color:#fff}
+.chip.used{background:var(--ok);color:#073b1d}
+.fb{min-height:40px;font-weight:700;color:var(--yel);text-align:center;padding:6px 0}
+.small{font-size:12px;color:var(--mut)}
+.tag{display:inline-block;background:#4b3a96;border-radius:8px;padding:2px 8px;font-size:12px;font-weight:700;margin-left:6px}
+.note{background:#241a57;border-radius:12px;padding:10px 12px;font-size:13px;color:var(--mut);margin-top:10px;border:1px dashed #5a46b0}
+.pun{background:var(--card);border-radius:12px;padding:10px 12px;margin:8px 0;display:flex;gap:10px;align-items:flex-start}
+.pun b{display:block;font-size:13px;color:var(--yel)}
+.pun .x{background:none;border:0;color:var(--mut);font-size:20px}
+@keyframes pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.pop{animation:pop .35s ease-out}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.shake{animation:shake .3s}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ACCUEIL -->
+<section id="s-home" class="screen on center">
+  <div class="hero">🎒</div>
+  <h1>PunchClass</h1>
+  <p style="font-size:18px;color:#fff;margin:10px 0 2px">Cours, saute, réplique !</p>
+  <p>Traverse le collège, ramasse des mots et <b style="color:#fff">écris tes meilleures punchlines</b> pour gagner les duels d'humour.</p>
+  <div style="height:18px"></div>
+  <button class="btn" id="b-play" style="width:100%">▶ Jouer</button>
+  <div style="height:10px"></div>
+  <div class="row" style="width:100%">
+    <button class="btn alt grow" id="b-book">📓 Mon carnet</button>
+    <button class="btn ghost grow" id="b-rules">❔ Règles</button>
+  </div>
+  <div class="note">😄 Humour bienveillant : les répliques visent des personnages imaginaires, jamais de vraies personnes. Pas d'insultes, pas de moqueries sur le physique. Tout reste sur ton téléphone.</div>
+</section>
+
+<!-- RÈGLES -->
+<section id="s-rules" class="screen">
+  <h2>Comment jouer ?</h2>
+  <p><b style="color:#fff">1. Plateforme :</b> avance avec ◀ ▶, saute avec ⬆. Saute sur les cartables 🎒 pour les écraser. Ramasse au moins 3 bulles 💬 puis entre dans la porte 🚪.</p>
+  <p><b style="color:#fff">2. Duel :</b> le boss te lance une pique. Réponds avec une punchline : choisis une carte, ou <b style="color:#fff">écris la tienne</b> !</p>
+  <p><b style="color:#fff">3. Points :</b> une réplique courte et drôle, qui contient des mots ramassés, qui rime ou joue avec les lettres, fait plus de dégâts. Bats le boss en 2 tours pour 3 ⭐.</p>
+  <p><b style="color:#fff">Fair-play :</b> les insultes et les moqueries sur le physique sont refusées par le jeu. Gagne avec l'esprit, pas avec la méchanceté.</p>
+  <div class="grow"></div>
+  <button class="btn" data-go="home">Compris</button>
+</section>
+
+<!-- NIVEAUX -->
+<section id="s-levels" class="screen">
+  <div class="row" style="align-items:center;justify-content:space-between"><h2>Choisis ton niveau</h2><span id="tot" class="stars"></span></div>
+  <div id="lvlist"></div>
+  <div class="grow"></div>
+  <button class="btn ghost" data-go="home">← Accueil</button>
+</section>
+
+<!-- JEU -->
+<section id="s-game" class="screen" style="padding:0">
+  <div id="hud"><span id="h-lvl">Niv. 1</span><span id="h-words">💬 0/3</span><span id="h-hp">❤❤❤</span><button class="btn ghost" id="b-quit" style="padding:4px 10px;font-size:14px;box-shadow:none">✕</button></div>
+  <canvas id="cv" width="360" height="520"></canvas>
+  <div id="msg"></div>
+  <div id="pad">
+    <div class="row"><button class="pb" id="pl">◀</button><button class="pb" id="pr">▶</button></div>
+    <button class="pb jump" id="pj">⬆ SAUT</button>
+  </div>
+</section>
+
+<!-- DUEL -->
+<section id="s-duel" class="screen">
+  <div id="boss">🧑‍🎓</div>
+  <div class="center" style="text-align:center;font-weight:800" id="bname"></div>
+  <div class="hp" style="margin:6px 0"><i id="hp" style="width:100%"></i></div>
+  <div class="small" style="text-align:center" id="round"></div>
+  <div class="bubble" id="taunt"></div>
+  <div id="myline" class="bubble me" style="display:none"></div>
+  <div id="pick">
+    <div class="small">Choisis une carte…</div>
+    <div class="cards" id="cards"></div>
+    <div class="small">…ou écris ta punchline (8 à 90 lettres) :</div>
+    <div class="chips" id="chips"></div>
+    <textarea id="txt" maxlength="90" placeholder="Ta punchline ici…"></textarea>
+    <div class="row" style="margin-top:8px"><button class="btn pk grow" id="b-send">🚀 Lancer !</button></div>
+  </div>
+  <div class="fb" id="fb"></div>
+  <div id="after" style="display:none"></div>
+</section>
+
+<!-- CARNET -->
+<section id="s-book" class="screen">
+  <h2>📓 Mon carnet de punchlines</h2>
+  <p>Tes répliques, rien que pour toi (elles restent sur ton téléphone).</p>
+  <div id="booklist"></div>
+  <div class="grow"></div>
+  <button class="btn ghost" data-go="home">← Accueil</button>
+</section>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- utilitaires ---------- */
+var $=function(i){return document.getElementById(i)};
+function norm(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')}
+function words(s){return norm(s).replace(/[^a-z0-9' ]+/g,' ').split(/\s+/).filter(Boolean)}
+function rnd(a,b){return a+Math.floor(Math.random()*(b-a+1))}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=rnd(0,i),t=a[i];a[i]=a[j];a[j]=t}return a}
+var store={get:function(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+var save=store.get('pc_save',{stars:[0,0,0,0,0,0],book:[],best:0});
+function persist(){store.set('pc_save',save)}
+
+/* ---------- contenu ---------- */
+var LEVELS=[
+{name:'La cour de récré',ic:'🏫',sky:['#8fd8ff','#d7f2ff'],gr:'#4caf50',boss:{e:'🧑‍🎓',n:'Kévin le Bavard',k:'élève'},
+ pool:['récré','ballon','retard','bavard','bille','cartable'],
+ taunts:['Personne ne me bat au jeu des répliques !','Tu vas rester muet comme un cartable !','Mes blagues sont les meilleures du collège !'],
+ cards:['Tes blagues sont comme les devoirs : tout le monde les rend en retard !','Tu parles tellement que ton ombre demande une pause !','Je ne suis pas muet, j\'économise mes meilleures répliques pour toi !','Ta langue court plus vite que toi à la récré !','Tu as la réponse à tout… sauf à l\'exercice 4 !','Si bavarder était un sport, tu aurais déjà la médaille !']},
+{name:'Le couloir',ic:'🚪',sky:['#ffd9a0','#fff1d6'],gr:'#c49a6c',boss:{e:'🕵️',n:'Mme Silence',k:'surveillante'},
+ pool:['carnet','couloir','sonnerie','chut','casier','pas'],
+ taunts:['Chut ! On ne court pas dans le couloir !','Montre-moi ton carnet de correspondance !','Silence absolu, ou c\'est retenue !'],
+ cards:['Je ne cours pas, je fais du tourisme accéléré !','Mon carnet est en vacances, il a prévenu par lettre !','Le silence est d\'or, mais mes répliques sont en diamant !','Chut… ici, c\'est la bibliothèque des blagues !','Je marche si vite que le couloir a pris du retard !','Avec vous, même les murs apprennent la discipline !']},
+{name:'La cantine',ic:'🍟',sky:['#ffc3a0','#ffe9dc'],gr:'#d9a066',boss:{e:'🧑‍🍳',n:'Dylan le Gourmand',k:'élève'},
+ pool:['frite','dessert','rab','plateau','sauce','chou'],
+ taunts:['Ma frite est plus croustillante que toi !','Tu n\'auras jamais le dernier dessert !','La cantine, c\'est mon territoire !'],
+ cards:['Ta sauce a plus de répliques que toi, et elle est moins piquante !','Je garde mon dessert… et mon dernier mot !','Tu règnes sur la cantine ? Moi sur les blagues, et elles ne refroidissent jamais !','Ça sent la victoire… ou le chou-fleur, je ne sais plus !','Tu veux du rab ? Voici une dose de répliques !','Mes punchlines sont comme les frites : on en reprend toujours !']},
+{name:'La salle de classe',ic:'📐',sky:['#b8c6ff','#e6ebff'],gr:'#6b8e6b',boss:{e:'👨‍🏫',n:'M. Théorème',k:'prof de maths'},
+ pool:['équation','zéro','tableau','craie','cours','règle'],
+ taunts:['Résous cette équation : tu perds, moi je gagne !','Un zéro pointé pour ta réplique !','Tu ne démontreras jamais ta valeur !'],
+ cards:['Mon équation : moi + humour = victoire, CQFD !','Votre cours est si clair que mon cahier prend des notes tout seul !','J\'ai trouvé x : c\'est la sortie !','Vous divisez les devoirs, moi je multiplie les sourires !','Je ne suis pas en retard, je suis asymptote de la sonnerie !','Un zéro ? C\'est juste un cercle de bonheur !']},
+{name:'Le CDI',ic:'📚',sky:['#d4b8ff','#efe3ff'],gr:'#8a6bb0',boss:{e:'🧑‍💼',n:'Mme Chuchote',k:'surveillante du CDI'},
+ pool:['livre','page','chuchote','rayon','roman','histoire'],
+ taunts:['Ici, on lit, on ne bavarde pas !','Un livre vaut mieux que mille répliques !','Rends ce livre avant minuit !'],
+ cards:['Mes répliques sont des livres : courtes, drôles et rendues à l\'heure !','J\'ai lu des milliers de pages, j\'ai juste oublié de me taire !','Dans ce CDI, mes blagues sont classées « best-seller » !','Je chuchote : vous avez perdu !','Mon livre préféré ? Celui où le héros gagne le duel !','Ce n\'est pas du bruit, c\'est de la poésie avec haut-parleur !']},
+{name:'La salle des profs',ic:'☕',sky:['#ffb3c7','#ffe3ec'],gr:'#b0705a',boss:{e:'🧙‍♂️',n:'Le Grand Prof',k:'prof légendaire'},
+ pool:['note','bulletin','vingt','copie','stylo','café'],
+ taunts:['Tu veux la note maximale ? Il faudra la mériter !','Ici, seuls les meilleurs répliquent !','Dernière chance, petit champion !'],
+ cards:['Je vise le 20 sur 20, avec mention punchline !','Mon bulletin dit « peut mieux faire », mes répliques disent « déjà fait » !','Pour les profs je suis un défi, pour les élèves un poète !','Je serai le premier à vous faire rire en salle des profs !','La note maximale existe : c\'est celle de mon humour !','Même votre stylo rouge trouve cette réplique tranchante !']}
+];
+/* mots refusés : insultes, vulgarités, moqueries physiques, violence, harcèlement */
+var BAD=['con','conne','connard','connasse','conard','salope','pute','putain','merde','fdp','ntm','tg','encule','enculer','batard','debile','idiot','idiote','cretin','cretine','abruti','abrutie','stupide','moche','gros','grosse','gras','grosses','maigre','laid','laide','nain','handicape','mongol','attarde','autiste','mort','mourir','tuer','suicide','creve','cancer','sida','nique','niquer','bite','cul','chiasse','pd','sale','degueulasse','racaille','negre','bougnoule','juif','pauvre','ratio','harcele','vomi','ferme','tais'];
+var BADPH=['ta gueule','ferme la','la ferme','va mourir','ferme ta'];
+function isClean(t){var n=norm(t);for(var i=0;i<BADPH.length;i++)if(n.indexOf(BADPH[i])>-1)return false;var w=words(t);for(var j=0;j<w.length;j++)if(BAD.indexOf(w[j])>-1)return false;return true}
+
+/* ---------- navigation ---------- */
+function show(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('on')});$('s-'+id).classList.add('on');if(id!=='game')stopGame()}
+document.querySelectorAll('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(b.getAttribute('data-go'))})});
+function go(id){if(id==='levels')drawLevels();if(id==='book')drawBook();show(id)}
+$('b-play').onclick=function(){go('levels')};
+$('b-book').onclick=function(){go('book')};
+$('b-rules').onclick=function(){go('rules')};
+$('b-quit').onclick=function(){go('levels')};
+
+function totalStars(){return save.stars.reduce(function(a,b){return a+b},0)}
+function drawLevels(){
+  $('tot').textContent='⭐ '+totalStars()+'/18';
+  var h='';
+  LEVELS.forEach(function(L,i){
+    var unlocked=i===0||save.stars[i-1]>0;
+    var st='';for(var k=0;k<3;k++)st+=k<save.stars[i]?'⭐':'☆';
+    h+='<div class="lv '+(unlocked?'':'lock')+'" data-i="'+i+'"><div class="ic">'+(unlocked?L.ic:'🔒')+'</div><div class="grow"><div class="nm">'+(i+1)+'. '+L.name+'</div><div class="sub">Duel : '+L.boss.n+' ('+L.boss.k+')</div></div><div class="stars">'+st+'</div></div>';
+  });
+  $('lvlist').innerHTML=h;
+  $('lvlist').querySelectorAll('.lv').forEach(function(el){el.onclick=function(){var i=+el.getAttribute('data-i');if(i===0||save.stars[i-1]>0)startLevel(i)}});
+}
+
+/* ---------- carnet ---------- */
+function drawBook(){
+  var h='';
+  if(!save.book.length)h='<p>Ton carnet est vide. Écris une punchline pendant un duel pour la retrouver ici !</p>';
+  save.book.slice().reverse().forEach(function(p,ri){
+    var idx=save.book.length-1-ri;
+    h+='<div class="pun"><div class="grow"><b>'+esc(p.boss)+' · '+p.dmg+' dégâts</b>'+esc(p.t)+'</div><button class="x" data-d="'+idx+'" aria-label="Supprimer">🗑</button></div>';
+  });
+  $('booklist').innerHTML=h;
+  $('booklist').querySelectorAll('.x').forEach(function(b){b.onclick=function(){save.book.splice(+b.getAttribute('data-d'),1);persist();drawBook()}});
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+/* ---------- plateforme ---------- */
+var cv=$('cv'),cx=cv.getContext('2d'),VW=360,VH=520,GY=470;
+var G=null,raf=0,keys={l:0,r:0,j:0};
+function build(i){
+  var L=LEVELS[i],W=1500+i*140,plats=[],words=[],foes=[],x=210;
+  var ys=[410,360,320,370,420];
+  var n=0;
+  while(x<W-260){
+    var y=ys[n%ys.length]-(i>3?(n%2)*10:0),w=84+rnd(0,26);
+    plats.push({x:x,y:y,w:w});
+    n++;x+=170+rnd(0,40);
+  }
+  /* 6 mots sur des plateformes (ou au sol si pas assez) */
+  var pw=shuffle(plats).slice(0,Math.min(5,plats.length)).sort(function(a,b){return a.x-b.x});
+  pw.forEach(function(p,k){words.push({x:p.x+p.w/2,y:p.y-26,w:L.pool[k],got:0})});
+  words.push({x:W-330,y:GY-30,w:L.pool[5],got:0});
+  var nf=3+i;
+  for(var f=0;f<nf;f++){var fx=330+f*((W-700)/nf)+rnd(0,40);foes.push({x:fx,y:GY-26,w:26,h:26,min:fx-70,max:fx+70,dir:f%2?1:-1,dead:0,sp:.6+i*.12})}
+  return {i:i,L:L,W:W,plats:plats,words:words,foes:foes,door:{x:W-80,y:GY-54,w:40,h:54},
+    p:{x:30,y:GY-34,w:24,h:34,vx:0,vy:0,on:1,face:1,inv:0},hp:3,got:0,inv:[],cam:0,msg:'',msgT:0,t:0,over:0};
+}
+function startLevel(i){
+  G=build(i);show('game');
+  $('h-lvl').textContent='Niv. '+(i+1)+' · '+G.L.name;
+  upHud();say('Ramasse 3 bulles 💬 puis va à la porte 🚪 !',240);
+  cancelAnimationFrame(raf);last=0;raf=requestAnimationFrame(loop);
+}
+function stopGame(){cancelAnimationFrame(raf);raf=0;keys.l=keys.r=keys.j=0}
+function say(t,f){G.msg=t;G.msgT=f||120;$('msg').textContent=t}
+function upHud(){var h='';for(var k=0;k<3;k++)h+=k<G.hp?'❤':'🖤';$('h-hp').textContent=h;$('h-words').textContent='💬 '+G.got+'/3'+(G.got>3?'+':'')}
+var last=0;
+function loop(t){
+  if(!G||G.over){return}
+  step();draw();raf=requestAnimationFrame(loop);
+}
+function step(){
+  var p=G.p,g=G;g.t++;
+  var ax=(keys.r?1:0)-(keys.l?1:0);
+  p.vx=ax*2.7;if(ax)p.face=ax;
+  if(keys.j&&p.on){p.vy=-10.8;p.on=0}
+  p.vy=Math.min(p.vy+.55,11);
+  var py=p.y+p.h;
+  p.x=Math.max(0,Math.min(g.W-p.w,p.x+p.vx));
+  p.y+=p.vy;p.on=0;
+  var nb=p.y+p.h;
+  if(p.vy>=0){
+    if(nb>=GY&&py<=GY+4){p.y=GY-p.h;p.vy=0;p.on=1}
+    else{
+      for(var i=0;i<g.plats.length;i++){var q=g.plats[i];
+        if(p.x+p.w>q.x&&p.x<q.x+q.w&&py<=q.y+2&&nb>=q.y){p.y=q.y-p.h;p.vy=0;p.on=1;break}}
+    }
+  }
+  if(p.inv>0)p.inv--;
+  g.foes.forEach(function(f){
+    if(f.dead)return;
+    f.x+=f.dir*f.sp;if(f.x<f.min||f.x>f.max)f.dir*=-1;
+    if(p.x+p.w>f.x&&p.x<f.x+f.w&&p.y+p.h>f.y&&p.y<f.y+f.h){
+      if(p.vy>1&&py<=f.y+8){f.dead=1;p.vy=-8;say('Plouf ! +5',60)}
+      else if(!p.inv){g.hp--;p.inv=90;p.vy=-6;p.x-=p.face*30;upHud();say('Aïe ! Un cartable !',60);
+        if(g.hp<=0){g.over=1;draw();setTimeout(function(){say('Raté ! On recommence…',100);startLevel(g.i)},700)}}
+    }
+  });
+  g.words.forEach(function(w){
+    if(!w.got&&Math.abs(p.x+12-w.x)<22&&Math.abs(p.y+17-w.y)<28){w.got=1;g.got++;g.inv.push(w.w);upHud();say('Mot ramassé : « '+w.w+' »',90)}
+  });
+  var d=g.door;
+  if(p.x+p.w>d.x&&p.x<d.x+d.w&&p.y+p.h>d.y){
+    if(g.got>=3){g.over=1;stopGame();startDuel(g)}
+    else if(g.t%90===0)say('Il te faut au moins 3 bulles 💬 !',80)
+  }
+  g.cam=Math.max(0,Math.min(g.W-VW,p.x-130));
+  if(g.msgT>0&&--g.msgT===0){$('msg').textContent=''}
+  if(p.y>VH+80){p.x=Math.max(20,p.x-60);p.y=GY-p.h;p.vy=0}
+}
+function emo(s,x,y,sz){cx.font=sz+'px serif';cx.textAlign='center';cx.fillText(s,x,y)}
+function draw(){
+  var g=G,L=g.L,cam=g.cam;
+  var gr=cx.createLinearGradient(0,0,0,VH);gr.addColorStop(0,L.sky[0]);gr.addColorStop(1,L.sky[1]);
+  cx.fillStyle=gr;cx.fillRect(0,0,VW,VH);
+  /* fond parallaxe */
+  cx.fillStyle='rgba(255,255,255,.55)';
+  for(var k=0;k<7;k++){var bx=((k*260-cam*.3)%(VW+260)+VW+260)%(VW+260)-80;cx.beginPath();cx.ellipse(bx,90+(k%3)*34,46,16,0,0,7);cx.fill()}
+  cx.fillStyle='rgba(0,0,0,.08)';
+  for(var m=0;m<9;m++){var mx=((m*190-cam*.55)%(VW+190)+VW+190)%(VW+190)-60;cx.fillRect(mx,GY-90-(m%3)*20,70,90+(m%3)*20)}
+  cx.save();cx.translate(-cam,0);
+  /* sol */
+  cx.fillStyle=L.gr;cx.fillRect(0,GY,g.W,VH-GY);cx.fillStyle='rgba(0,0,0,.18)';cx.fillRect(0,GY,g.W,5);
+  /* plateformes */
+  g.plats.forEach(function(q){cx.fillStyle='#7a4a21';rr(q.x,q.y,q.w,14,6);cx.fillStyle=L.gr;rr(q.x,q.y-3,q.w,8,4)});
+  /* porte */
+  var d=g.door;emo(g.got>=3?'🚪':'🔒',d.x+20,d.y+46,44);
+  /* mots */
+  g.words.forEach(function(w){if(!w.got){var b=Math.sin(g.t/10+w.x)*3;emo('💬',w.x,w.y+b+8,26)}});
+  /* ennemis */
+  g.foes.forEach(function(f){if(!f.dead)emo('🎒',f.x+13,f.y+22,28)});
+  /* joueur */
+  var p=g.p;if(!(p.inv>0&&g.t%6<3)){cx.save();cx.translate(p.x+12,p.y+30);cx.scale(p.face,1);emo('🧒',0,0,34);cx.restore()}
+  cx.restore();
+}
+function rr(x,y,w,h,r){cx.beginPath();cx.moveTo(x+r,y);cx.arcTo(x+w,y,x+w,y+h,r);cx.arcTo(x+w,y+h,x,y+h,r);cx.arcTo(x,y+h,x,y,r);cx.arcTo(x,y,x+w,y,r);cx.fill()}
+
+/* contrôles */
+function hold(id,key){var b=$(id);
+  function on(e){e.preventDefault();keys[key]=1;b.classList.add('dn')}
+  function off(e){e.preventDefault();keys[key]=0;b.classList.remove('dn')}
+  b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointerleave',off);b.addEventListener('pointercancel',off);
+  b.addEventListener('contextmenu',function(e){e.preventDefault()})}
+hold('pl','l');hold('pr','r');hold('pj','j');
+window.addEventListener('keydown',function(e){if(e.target.tagName==='TEXTAREA')return;if(e.key==='ArrowLeft')keys.l=1;if(e.key==='ArrowRight')keys.r=1;if(e.key===' '||e.key==='ArrowUp'){keys.j=1;e.preventDefault()}});
+window.addEventListener('keyup',function(e){if(e.key==='ArrowLeft')keys.l=0;if(e.key==='ArrowRight')keys.r=0;if(e.key===' '||e.key==='ArrowUp')keys.j=0});
+
+/* ---------- duel de punchlines ---------- */
+var D=null;
+function startDuel(g){
+  var L=g.L;
+  D={i:g.i,L:L,hp:100,round:0,words:g.inv.slice(),used:{},cards:shuffle(L.cards),done:0,texts:{},win:0};
+  show('duel');
+  $('boss').textContent=L.boss.e;$('bname').textContent=L.boss.n+' · '+L.boss.k;
+  $('after').style.display='none';$('myline').style.display='none';$('pick').style.display='block';
+  newRound();
+}
+function newRound(){
+  var L=D.L;
+  $('taunt').style.display='';$('round').style.display='';$('round').textContent='Tour '+(D.round+1)+' sur 3';
+  $('taunt').textContent='« '+L.taunts[D.round]+' »';
+  $('hp').style.width=D.hp+'%';
+  $('myline').style.display='none';$('fb').textContent='';$('txt').value='';
+  var h='';D.cards.slice(D.round*2,D.round*2+3).forEach(function(c,k){h+='<button class="pcard" data-c="'+(D.round*2+k)+'">'+esc(c)+'</button>'});
+  $('cards').innerHTML=h;
+  $('cards').querySelectorAll('.pcard').forEach(function(b){b.onclick=function(){throwLine(D.cards[+b.getAttribute('data-c')],false)}});
+  var cs='';D.words.forEach(function(w){cs+='<button class="chip" data-w="'+esc(w)+'">'+esc(w)+'</button>'});
+  $('chips').innerHTML=cs||'<span class="small">Aucun mot ramassé.</span>';
+  refreshChips();
+  $('pick').style.display='block';
+}
+function refreshChips(){
+  var t=norm($('txt').value);
+  $('chips').querySelectorAll('.chip').forEach(function(c){c.classList.toggle('used',t.indexOf(norm(c.getAttribute('data-w')))>-1)});
+}
+$('chips').addEventListener('click',function(e){var c=e.target.closest('.chip');if(!c)return;var t=$('txt'),w=c.getAttribute('data-w');if(norm(t.value).indexOf(norm(w))<0){t.value=(t.value?t.value.replace(/\s*$/,' '):'')+w;if(t.value.length>90)t.value=t.value.slice(0,90)}refreshChips()});
+$('txt').addEventListener('input',refreshChips);
+$('b-send').onclick=function(){
+  var t=$('txt').value.replace(/\s+/g,' ').trim();
+  if(t.length<8){$('fb').textContent='Trop court ! Écris au moins 8 lettres.';return}
+  if(!isClean(t)){$('fb').textContent='🚫 Reste fair-play : pas d\'insultes ni de moqueries sur le physique !';$('txt').classList.remove('shake');void $('txt').offsetWidth;$('txt').classList.add('shake');return}
+  if(D.texts[norm(t)]){$('fb').textContent='Déjà utilisée dans ce duel. Trouve une autre réplique !';return}
+  throwLine(t,true)
+};
+function lastW(s){var w=words(s);return(w[w.length-1]||'').replace(/[^a-z]/g,'')}
+function score(t,taunt){
+  var w=words(t),n=t.length,pts=10,why=[];
+  if(n>=18&&n<=75){pts+=10;why.push('longueur idéale +10')}else if(n>=10){pts+=4}
+  var used=D.words.filter(function(x){return norm(t).indexOf(norm(x))>-1});
+  if(used.length){var b=Math.min(3,used.length)*8;pts+=b;why.push(used.length+' mot(s) ramassé(s) +'+b)}
+  var a=lastW(t),b2=lastW(taunt);
+  if(a.length>2&&b2.length>2&&a.slice(-2)===b2.slice(-2)){pts+=10;why.push('rime avec le boss +10')}
+  if(/[!?…]/.test(t)){pts+=5;why.push('punch +5')}
+  var init={},al=0;w.forEach(function(x){if(x.length>3){init[x[0]]=(init[x[0]]||0)+1;if(init[x[0]]===2)al=1}});
+  if(al){pts+=6;why.push('allitération +6')}
+  if(w.length>=6&&new Set(w).size/w.length>.9){pts+=3}
+  return{pts:Math.min(60,pts+rnd(-2,3)),why:why};
+}
+function throwLine(t,mine){
+  var taunt=D.L.taunts[D.round],dmg,why=[];
+  if(mine){var s=score(t,taunt);dmg=Math.max(12,s.pts);why=s.why}
+  else dmg=rnd(22,28);
+  D.texts[norm(t)]=1;if(mine){D.mine=D.mine||{};D.mine[norm(t)]=1}
+  $('pick').style.display='none';
+  var ml=$('myline');ml.style.display='block';ml.textContent='« '+t+' »';ml.classList.remove('pop');void ml.offsetWidth;ml.classList.add('pop');
+  D.hp=Math.max(0,D.hp-dmg);$('hp').style.width=D.hp+'%';
+  $('boss').classList.remove('shake');void $('boss').offsetWidth;$('boss').classList.add('shake');
+  var m=dmg>=45?'🤯 Réplique légendaire !':dmg>=32?'🔥 Excellente !':dmg>=22?'👍 Bien joué !':'🙂 Pas mal…';
+  $('fb').innerHTML=m+' <b>-'+dmg+' PV</b>'+(why.length?'<div class="small">'+why.join(' · ')+'</div>':'');
+  if(mine){save.book.push({t:t,boss:D.L.boss.n,dmg:dmg});if(save.book.length>80)save.book.shift();persist()}
+  D.round++;
+  setTimeout(function(){
+    if(D.hp<=0)endDuel(1);
+    else if(D.round>=3)endDuel(0);
+    else{$('fb').textContent='';newRound()}
+  },1700);
+}
+function endDuel(win){
+  var wrote=Object.keys(D.mine||{}).length>0;var stars=win?(D.round<=2?3:(wrote?2:1)):0;
+  var h;
+  if(win){
+    save.stars[D.i]=Math.max(save.stars[D.i],stars);persist();
+    var st='';for(var k=0;k<3;k++)st+=k<stars?'⭐':'☆';
+    h='<div class="center pop" style="text-align:center"><div style="font-size:54px">🏆</div><h2>Duel gagné !</h2><div class="stars" style="font-size:34px">'+st+'</div><p>'+D.L.boss.n+' est KO… de rire !</p></div><div class="row" style="margin-top:12px">'+(D.i<5?'<button class="btn grow" id="a-next">Niveau suivant ▶</button>':'<button class="btn grow" id="a-end">🎓 Diplôme !</button>')+'</div><div class="row" style="margin-top:8px"><button class="btn ghost grow" id="a-lv">Niveaux</button></div>';
+  }else{
+    h='<div class="center pop" style="text-align:center"><div style="font-size:54px">😅</div><h2>Presque !</h2><p>'+D.L.boss.n+' résiste encore. Ramasse plus de mots et écris des répliques courtes qui riment !</p></div><div class="row" style="margin-top:12px"><button class="btn grow" id="a-retry">Réessayer le duel</button></div><div class="row" style="margin-top:8px"><button class="btn ghost grow" id="a-lv">Niveaux</button></div>';
+  }
+  $('fb').textContent='';$('taunt').style.display='none';$('round').style.display='none';$('after').innerHTML=h;$('after').style.display='block';$('myline').style.display='none';
+  var el;
+  if(el=$('a-next'))el.onclick=function(){startLevel(D.i+1)};
+  if(el=$('a-end'))el.onclick=function(){$('after').innerHTML='<div class="center pop" style="text-align:center"><div style="font-size:64px">🎓</div><h2>Bravo, champion·ne des punchlines !</h2><p>Tu as battu tous les duels du collège. Relis ton carnet et invente de nouvelles répliques !</p></div><div class="row" style="margin-top:12px"><button class="btn grow" id="a-home">Accueil</button></div>';$('a-home').onclick=function(){go('home')}};
+  if(el=$('a-retry'))el.onclick=function(){D.hp=100;D.round=0;D.texts={};D.mine={};D.cards=shuffle(D.L.cards);$('after').style.display='none';$('pick').style.display='block';newRound()};
+  if(el=$('a-lv'))el.onclick=function(){go('levels')};
+}
+
+/* mise à l'échelle du canvas dans l'espace restant */
+window.__pc={startLevel:startLevel,go:go,G:function(){return G},D:function(){return D},keys:keys,save:save,persist:persist};
+})();
+</script>
+</body>
+</html>
